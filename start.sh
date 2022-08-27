@@ -14,8 +14,11 @@ mkdir ./angaryos/services/postgresql/data
 chmod 777 -R ./angaryos/services/postgresql/data
 
 day=$(date +"%Y-%m-%d")
-logfile="./angaryos/services/ftpserver/data/angaryos/logs/laravel-$day.log"
+logfiledaily="./angaryos/services/ftpserver/data/angaryos/logs/laravel-$day.log"
+touch $logfiledaily
+chmod 777 $logfiledaily
 
+logfile="./angaryos/services/ftpserver/data/angaryos/logs/laravel.log"
 touch $logfile
 chmod 777 $logfile
 
