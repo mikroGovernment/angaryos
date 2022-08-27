@@ -13,4 +13,10 @@ chown 26:26 ./angaryos/services/postgresql/.pgpass
 mkdir ./angaryos/services/postgresql/data
 chmod 777 -R ./angaryos/services/postgresql/data
 
-docker stack deploy --compose-file ./docker-stack-dev.yml angaryos
+day=$(date +"%Y-%m-%d")
+logfile="./angaryos/services/ftpserver/data/angaryos/logs/laravel-$day.log"
+
+touch $logfile
+chmod 777 $logfile
+
+docker stack deploy --compose-file ./angaryos/docker-stack-dev.yml angaryos
