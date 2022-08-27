@@ -1,0 +1,311 @@
+version: "3.3"
+
+services:
+
+  #######       ADMINISTRATION       #######
+ 
+  # Compose OK
+  portainer: 
+    image: portainer/portainer-ce:alpine
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    ports:
+      - 10000:9443
+    command: -H unix:///var/run/docker.sock
+    deploy:
+      mode: replicated
+      replicas: 1
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider --no-check-certificate https://localhost:9443 || exit 1
+      interval: 10s
+      retries: 3
+      timeout: 5s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./services/portainer/data:/data 
+      - '/etc/localtime:/etc/localtime:ro'
+
+
+
+  #######       REVERSE PROXY       #######
+
+  # Compose OK
+  traefik:
+    image: traefik:alpine
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    command: -c /etc/traefik.toml
+    deploy:
+      mode: replicated
+      replicas: 1
+    ports:
+      - "80:80"
+      - "10001:8080"
+      - target: 443
+        published: 443 
+        mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./services/traefik/traefik-stack.toml:/etc/traefik.toml
+      - ./services/traefik/data/traefik.log:/etc/traefik.log
+      - ./services/traefik/data/traefik-access.log:/etc/traefik-access.log
+      - ./services/traefik/self.crt:/etc/self.crt
+      - ./services/traefik/self.key:/etc/self.key
+      - '/etc/localtime:/etc/localtime:ro'
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1
+      interval: 10s
+      retries: 3
+      timeout: 5s
+    networks:
+      - backend-nw
+      - frontend-nw
+
+
+
+  #######       BACKENDS       #######
+
+  # Compose OK
+  backend:
+    image: karapazar/angaryos-backend:latest.dev
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    deploy:
+      mode: replicated
+      replicas: 1
+    healthcheck:
+      test: bash -c '! php-fpm 2>&1 || exit 1'
+      interval: 10s
+      retries: 5
+      timeout: 10s
+    volumes:
+      - ./services/ftpserver/data/angaryos/uploads:/var/www/html/public/uploads
+      - ./services/ftpserver/data/angaryos/logs:/var/www/html/storage/logs
+      - ./services/geoserver/data:/var/geoserver
+      - /var/run/docker.sock:/var/run/docker.sock 
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - backend-nw
+      - db-nw
+
+  # Compose OK
+  nginx:
+    image: nginx
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    tty: true
+    volumes:
+      - ./services/nginx/nginx.php:/var/www/html/public/index.php
+      - ./services/nginx/nginx.conf:/etc/nginx/conf.d/app.conf
+      - '/etc/localtime:/etc/localtime:ro'
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        traefik.api.frontend.rule: "PathPrefix:/api"
+        traefik.logs.frontend.rule: "PathPrefix:/{[a-z]+}/log-viewer"
+        traefik.telescope.frontend.rule: "PathPrefix:/telescope"
+        traefik.publicvendor.frontend.rule: "PathPrefix:/vendor"
+        traefik.port: "80"
+        traefik.enable: "true"
+        traefik.backend: "nginx"
+        traefik.docker.network: "angaryos_backend-nw"
+    healthcheck:
+      test: curl --fail http://localhost || exit 1
+      interval: 10s
+      retries: 5
+      timeout: 10s
+    networks:
+      - backend-nw
+
+  # Compose OK
+  memcached:
+    image: memcached
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    healthcheck:
+      test: bash -c '! memcached 2>&1 || exit 1'
+      interval: 10s
+      retries: 5
+      timeout: 10s
+    networks:
+      - backend-nw
+
+
+
+  #######       DATABASE       #######
+
+  # Compose OK
+  pgsql:
+    image: 'postgis/postgis:14-3.2'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    #ports:
+    #  - '10002:5432'
+    environment:
+      PGPASSWORD: 'angaryos'
+      POSTGRES_DB: 'angaryos'
+      POSTGRES_USER: 'angaryos'
+      POSTGRES_PASSWORD: 'angaryos'
+    volumes:
+      - ./services/postgresql/data:/var/lib/postgresql/data
+      - ./services/postgresql/.pgpass:/var/lib/postgresql/.pgpass
+      - '/etc/localtime:/etc/localtime:ro'
+    networks:
+      - db-nw
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "angaryos", "-U", "angaryos"]
+      interval: 10s
+      retries: 3
+      timeout: 5s
+
+
+
+  #######       GEO       #######
+
+  # Compose OK
+  geoserver:
+    image: kartoza/geoserver:2.21.0
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    networks:
+      - backend-nw
+      - db-nw
+    ports:
+      - "10003:8080"
+    environment:
+      - GEOSERVER_DATA_DIR=/opt/geoserver/data_dir/
+      - GEOSERVER_ADMIN_USER=admin
+      - GEOSERVER_ADMIN_PASSWORD=geoserver
+      - INITIAL_MEMORY=256M
+      - MAXIMUM_MEMORY=256M
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/geoserver/web || exit 1
+      interval: 10s
+      retries: 3
+      timeout: 5s
+    volumes:
+      - ./services/geoserver/data:/opt/geoserver/data_dir/
+      - '/etc/localtime:/etc/localtime:ro'
+
+  
+
+  #######       FILES       #######
+
+  # Compose OK
+  ftpServer:
+    image: fauria/vsftpd
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    environment:
+      - FTP_USER=angaryos
+      - FTP_PASS=angaryos
+      - FILE_OPEN_MODE=0777
+      - PASV_ADDR_RESOLVE=YES
+      - PASV_ADDRESS=ftpServer
+      - PASV_ADDRESS_ENABLE=YES
+      - PASV_MIN_PORT=64000
+      - PASV_MAX_PORT=64005  
+    #healthcheck:
+    #  test: bash -c 'curl --list-only ftp://angaryos:angaryos@localhost/ || exit 1'
+    #  interval: 10s
+    #  retries: 3
+    #  timeout: 5s
+    volumes:
+      - ./services/ftpserver/vsftpd.log:/var/log/vsftpd/vsftpd.log
+      - ./services/ftpserver/data:/home/vsftpd
+      - '/etc/localtime:/etc/localtime:ro'
+    networks:
+      - backend-nw
+
+  # Compose OK
+  fileServer: 
+    image: nginx
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    volumes:
+      - ./services/ftpserver/data/angaryos:/usr/share/nginx/html:ro
+      - '/etc/localtime:/etc/localtime:ro'
+    networks:
+      - backend-nw
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        traefik.frontend.rule: "PathPrefix:/uploads"
+        traefik.port: "80"
+        traefik.enable: "true"
+        traefik.backend: "fileServer"
+        traefik.docker.network: "angaryos_backend-nw"
+    healthcheck:
+      test: curl --fail http://localhost/uploads/2022/01/01/test.txt || exit 1
+      interval: 10s
+      retries: 5
+      timeout: 10s
+
+
+
+  #######       FRONTENDS       #######
+
+  # Compose OK
+  frontend:
+    image: karapazar/angaryos-frontend:temp8.latest
+    volumes:
+      - ./.host:/usr/share/nginx/html/.host
+      - '/etc/localtime:/etc/localtime:ro'
+    networks:
+      - frontend-nw
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        traefik.base.frontend.rule: "PathPrefix:/"        
+        traefik.vendorjs.frontend.rule: "PathPrefix:/vendor.js"
+        traefik.port: "80"
+        traefik.enable: "true"
+        traefik.backend: "frontend"
+        traefik.docker.network: "angaryos_frontend-nw"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "10"
+    healthcheck:
+      test: curl --fail http://localhost/ || exit 1
+      interval: 10s
+      retries: 5
+      timeout: 10s
+
+
+
+networks:
+    backend-nw:
+    frontend-nw:
+    db-nw:
