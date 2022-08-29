@@ -46,7 +46,7 @@ services:
       replicas: 1
     ports:
       - "80:80"
-      - "10001:8080"
+      #- "10001:8080"
       - target: 443
         published: 443 
         mode: host
@@ -276,7 +276,7 @@ services:
 
   # Compose OK
   frontend:
-    image: karapazar/angaryos-frontend:temp8.latest
+    image: karapazar/angaryos-frontend:latest.dev
     volumes:
       - ./.host:/usr/share/nginx/html/.host
       - '/etc/localtime:/etc/localtime:ro'
