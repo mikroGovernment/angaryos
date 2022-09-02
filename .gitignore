@@ -8,4 +8,6 @@
 /note.txt
 /buildAndPushManuel.sh
 /.vscode
+/backend.env
 /docker-stack-dev-local.yml
+/renewStack.sh
