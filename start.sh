@@ -29,3 +29,4 @@ echo $hostAdress > ./angaryos/.host
 echo 'served at https://'"$hostAdress"'/'
 
 chmod 777 -R ./angaryos/services/ftpserver/data/
+chmod 777 -R ./angaryos/backend/public/temps/

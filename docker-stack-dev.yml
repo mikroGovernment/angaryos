@@ -89,7 +89,7 @@ services:
       timeout: 10s
     volumes:
       - ./.host:/var/www/html/.host
-      - ./backend.example.env:/usr/share/nginx/html/.env
+      - ./backend.example.env:/var/www/html/.env
 
       - ./services/ftpserver/data/angaryos/uploads:/var/www/html/public/uploads
       - ./services/ftpserver/data/angaryos/logs:/var/www/html/storage/logs
