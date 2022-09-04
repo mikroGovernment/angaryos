@@ -23,3 +23,9 @@ touch $logfile
 chmod 777 $logfile
 
 docker stack deploy --compose-file ./angaryos/docker-stack-dev.yml angaryos
+
+read -p "Enter new host address (ex: 192.168.3.50, bulut.omersavas.com): "  hostAdress
+echo $hostAdress > ./angaryos/.host 
+echo 'served at https://'"$hostAdress"'/'
+
+chmod 777 -R ./angaryos/services/ftpserver/data/
