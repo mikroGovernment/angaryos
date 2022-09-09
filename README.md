@@ -37,9 +37,7 @@ Bu uygulama, içerisinde bir çok servisi barındırır. Bu sebeple önerilen, s
 ### Linux
 
 ```
-sudo wget https://raw.githubusercontent.com/mikroGovernment/angaryos/main/start.sh
-sudo chmod +x start.sh
-sudo ./start.sh 
+sudo wget https://raw.githubusercontent.com/mikroGovernment/angaryos/main/start.sh && sudo chmod +x start.sh && sudo ./start.sh 
 ```
 
 ### Windows
