@@ -2,6 +2,8 @@
 
 Merhaba. Bu; yazılımcıları yazılımın **angarya kısmından kurtarıp** esas işe odaklanmalarını sağlayacak olan açık kaynak bir yazılım geliştirme altyapısıdır. Temel olarak **veri setlerinizi kaydedip** güvenli ve yetki kontrollü bir biçimde; **API yada arayüz** aracılığı ile **sunmanızı** ( güncellemenizi / eklemenizi / silmenizi / datanın geçmişini takip edebilmenizi / geri yükleyebilmenizi / export edebilmenizi) sağlar.
 
+Ayrıca hala çok fazla eksiği olsa da başlıkları size fikir vereceğini düşündüğüm için buradan (https://mikrogovernment.github.io/angaryos-docs) da dokümanlarımıza bakabilirsiniz. Son olarak bir kaç gerçek hayat örneği yaptık onlar hakkındaki yazı serimize de buradan erişebilirsiniz. (https://medium.com/mikrogovernment/angaryos-ger%C3%A7ek-hayat-%C3%B6rnekleri-1-d3fd57c44da6)
+
 ![Diagram](./services/files/images/Diagram.png)
 
 Sistem tamamen **docker-stack** üzerinde çalışmaktadır. Bu sayede daha yoğun uygulamalar için ölçekleneblir. **GIS** desteği sayesinde coğrafi veri üretebilmenizi ve saklayabilmenizi sağlar. Yoğun dosya trafiği olan uygulamalarda kullanabilmeniz için dosya sunucusu bağımsız bir servis olarak eklenmiştir. Bu sayede **ftp yada bulut** servislerinizi de dosya deposu olarak kullanabilirsiniz. Log tutmak için -varsayılan olarak kapalı olsa da- **Elastic search-Logstash-Kibana** kurulmuştur. Ayrıca asenkron ve rutin işlemler için **Jobs ve Cron** servisleri bağımsız olarak çalışmaktadır. Bunun yanında bu framework; **data entegratör, dahili bir mobil uygulama (ionic), dinamik rapor tasarlayabilme, coğrafi veri üretme aracı, IOT login, e-imzalama yapabilme...** gibi bir çok yan özellik barındırmaktadır.
